@@ -493,7 +493,6 @@
             android:name="org.autojs.autojs.ui.error.IssueReporterActivity"
             android:theme="@style/IssueReporterTheme" />
 
-        <service android:name="org.autojs.autojs.external.ScriptExecutionIntentService" />
         <service
             android:name="org.autojs.autojs.external.foreground.ForegroundService"
             android:foregroundServiceType="connectedDevice" />
