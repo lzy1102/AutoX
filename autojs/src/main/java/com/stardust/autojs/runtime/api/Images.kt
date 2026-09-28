@@ -203,7 +203,7 @@ class Images(
                 point.y += rect.y.toDouble()
             }
             point.x = mScreenMetrics.scaleX(point.x.toInt()).toDouble()
-            point.y = mScreenMetrics.scaleX(point.y.toInt()).toDouble()
+            point.y = mScreenMetrics.scaleY(point.y.toInt()).toDouble()
         }
         if (src !== image.mat) {
             OpenCVHelper.release(src)
@@ -238,7 +238,7 @@ class Images(
                 point.y += rect.y.toDouble()
             }
             point.x = mScreenMetrics.scaleX(point.x.toInt()).toDouble()
-            point.y = mScreenMetrics.scaleX(point.y.toInt()).toDouble()
+            point.y = mScreenMetrics.scaleY(point.y.toInt()).toDouble()
         }
         if (src !== image.mat) {
             OpenCVHelper.release(src)
