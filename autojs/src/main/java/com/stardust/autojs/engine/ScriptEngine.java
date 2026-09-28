@@ -72,8 +72,22 @@ public interface ScriptEngine<S extends ScriptSource> {
         private Map<String, Object> mTags = new ConcurrentHashMap<>();
         private OnDestroyListener mOnDestroyListener;
         private volatile boolean mDestroyed = false;
+        private volatile boolean mForceStopRequested = false;
         private Throwable mUncaughtException;
         private volatile AtomicInteger mId = new AtomicInteger(ScriptExecution.NO_ID);
+
+        /**
+         * 是否已请求强制停止。
+         * 与线程中断标志不同，该标记与线程无关，用于脚本运行在 Android 主线程
+         * （UI 模式）时也能被检测到停止请求，从而打断主线程上的死循环。
+         */
+        public boolean isForceStopRequested() {
+            return mForceStopRequested;
+        }
+
+        public void setForceStopRequested(boolean forceStopRequested) {
+            mForceStopRequested = forceStopRequested;
+        }
 
         @Override
         public void setTag(String key, Object value) {

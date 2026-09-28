@@ -40,7 +40,17 @@ open class AndroidContextFactory(private val cacheDirectory: File) : ContextFact
     }
 
     override fun observeInstructionCount(cx: Context, instructionCount: Int) {
-        if (Thread.currentThread().isInterrupted && Looper.myLooper() != Looper.getMainLooper()) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            // UI 模式的脚本直接运行在 Android 主线程上：不能依赖线程中断标志
+            // （中断主线程会引入副作用），改用引擎上与线程无关的强制停止标记，
+            // 保证主线程上的纯 JS 死循环也能被打断
+            val engine = (cx as? AutoJsContext)?.rhinoJavaScriptEngine
+            if (engine != null && engine.isForceStopRequested) {
+                throw ScriptInterruptedException()
+            }
+            return
+        }
+        if (Thread.currentThread().isInterrupted) {
             throw ScriptInterruptedException()
         }
     }
@@ -52,8 +62,11 @@ open class AndroidContextFactory(private val cacheDirectory: File) : ContextFact
     }
 
     private fun setupContext(context: Context) {
-        context.instructionObserverThreshold = 10000
         context.optimizationLevel = -1
+        context.instructionObserverThreshold = 10000
+        // 显式开启指令计数回调，保证纯 JS 死循环（如 while(true){}）也能通过
+        // observeInstructionCount 检测到中断标志并被 ScriptInterruptedException 打断
+        context.setGenerateObserverCount(true)
         context.languageVersion = Context.VERSION_ES6
         context.locale = Locale.getDefault()
         context.wrapFactory = wrapFactory

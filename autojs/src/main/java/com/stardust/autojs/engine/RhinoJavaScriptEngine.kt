@@ -84,6 +84,9 @@ open class RhinoJavaScriptEngine(private val mAndroidContext: android.content.Co
 
 
     override fun forceStop() {
+        // 标记与线程无关的停止请求，保证运行在 Android 主线程（UI 模式）的脚本
+        // 也能在 observeInstructionCount 中被检测到并打断
+        setForceStopRequested(true)
         Log.d(LOG_TAG, "forceStop: interrupt Thread: $thread")
         thread.interrupt()
     }

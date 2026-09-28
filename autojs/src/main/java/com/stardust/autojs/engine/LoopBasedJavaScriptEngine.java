@@ -5,6 +5,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.stardust.autojs.runtime.ScriptRuntime;
 import com.stardust.autojs.script.JavaScriptSource;
 import com.stardust.autojs.script.ScriptSource;
 
@@ -78,6 +79,12 @@ public class LoopBasedJavaScriptEngine extends RhinoJavaScriptEngine {
             activity.finish();
         }
         super.forceStop();
+        // 仅调用 Thread.interrupt() 无法唤醒阻塞在 nativePollOnce 的脚本主线程 looper，
+        // 必须额外投递一条消息，否则脚本主线程在空闲时无法感知中断、停不下来
+        ScriptRuntime runtime = getRuntime();
+        if (runtime != null && runtime.loopers != null) {
+            runtime.loopers.wakeUp();
+        }
     }
 
     @Override

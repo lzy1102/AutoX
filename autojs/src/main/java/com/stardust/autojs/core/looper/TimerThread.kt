@@ -23,12 +23,27 @@ open class TimerThread(private val mRuntime: ScriptRuntime, private val mTarget:
         mRuntime.loopers.addAsyncTask(mAsyncTask)
     }
 
+    /**
+     * [Thread.interrupt] 只能设置中断标志，无法唤醒阻塞在 Looper.loop() 中
+     * nativePollOnce 的线程。这里在设置中断标志后额外唤醒本线程的 looper，
+     * 使其能感知中断并通过 IdleHandler 退出循环，避免线程杀不死。
+     */
+    override fun interrupt() {
+        super.interrupt()
+        loopers?.wakeUp()
+    }
+
     override fun run() {
         loopers = Loopers(mRuntime)
         mTimer = loopers!!.mTimer
         (mRuntime.engines.myEngine() as RhinoJavaScriptEngine).enterContext()
         notifyRunning()
-        mTimer!!.post(mTarget)
+        if (isInterrupted) {
+            // 启动前就已被要求中断：不执行目标函数，直接唤醒 looper 让其退出
+            loopers!!.wakeUp()
+        } else {
+            mTimer!!.post(mTarget)
+        }
         try {
             Looper.loop()
         } catch (e: Throwable) {

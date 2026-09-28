@@ -78,6 +78,25 @@ class Loopers(val runtime: ScriptRuntime) {
         if (available) mTimer.post(EMPTY_RUNNABLE)
     }
 
+    /**
+     * 唤醒该 Loopers 所属的 Looper。
+     *
+     * Java 的 [Thread.interrupt] 只能设置中断标志，无法唤醒阻塞在
+     * [android.os.MessageQueue.next]（nativePollOnce）中的线程。线程一旦在
+     * Looper.loop() 中空闲阻塞，中断标志的变化就永远不会被 [shouldQuitLooper]
+     * 检查到，导致线程残留、无法退出。
+     *
+     * 这里向消息队列投递一条空消息，使队列重新变为非空闲，从而触发 IdleHandler
+     * 再次执行退出判断并退出循环。
+     */
+    fun wakeUp() {
+        try {
+            mTimer.post(EMPTY_RUNNABLE)
+        } catch (e: Throwable) {
+            Log.w(LOG_TAG, e)
+        }
+    }
+
 
     private fun checkTask(): Boolean {
         allTasks.removeAll(allTasks.filter { it.isEnd }.toSet())

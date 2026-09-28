@@ -90,10 +90,13 @@ class Threads(private val mRuntime: ScriptRuntime) {
     fun shutDownAll() {
         coroutineScope.cancel("script exiting")
         synchronized(mThreads) {
+            // 只发送中断信号，不在此处清空集合：
+            // 线程真正退出时会通过 onExit() 自行从 mThreads 移除。
+            // 若提前 clear()，那些仍存活（例如阻塞在 nativePollOnce 或处于
+            // 非响应中断的阻塞调用中）的线程会失去跟踪，之后再也无法被停止。
             for (thread in mThreads) {
                 thread.interrupt()
             }
-            mThreads.clear()
         }
     }
 

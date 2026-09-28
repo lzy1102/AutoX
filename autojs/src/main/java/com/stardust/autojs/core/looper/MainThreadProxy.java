@@ -83,6 +83,11 @@ public class MainThreadProxy {
 
     public void interrupt() {
         mThread.interrupt();
+        // 仅设置中断标志无法唤醒阻塞在 nativePollOnce 的脚本主线程 looper，
+        // 需额外唤醒，否则脚本主线程在空闲时无法退出
+        if (mRuntime != null && mRuntime.loopers != null) {
+            mRuntime.loopers.wakeUp();
+        }
     }
 
     public static boolean interrupted() {
