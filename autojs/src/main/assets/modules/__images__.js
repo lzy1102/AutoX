@@ -548,16 +548,22 @@ module.exports = function (runtime, scope) {
 
         // ==================== 懒人精灵风格图色兼容支持 ====================
 
-        /** "RRGGBB" / "#RRGGBB" -> 颜色整数 */
+        /**
+         * 颜色串解析：
+         * 带 "#" 按 #RRGGBB（AutoX 习惯）；不带 "#" 的纯 6 位按 BBGGRR（懒人精灵习惯，文档明确此格式）。
+         */
         function parseLrColorValue(str) {
-            str = String(str).trim();
-            if (str.charAt(0) === '#') {
-                str = str.substring(1);
+            var s = String(str).trim();
+            var hasSharp = s.charAt(0) === '#';
+            var v = parseInt(hasSharp ? s.substring(1) : s, 16) & 0xFFFFFF;
+            if (hasSharp) {
+                return v;
             }
-            return parseInt(str, 16) & 0xFFFFFF;
+            // BBGGRR -> RRGGBB，交换 R 与 B
+            return ((v & 0xFF) << 16) | (v & 0xFF00) | ((v >> 16) & 0xFF);
         }
 
-        /** 偏色串(如 "101010") -> 逐通道容差，取三个分量的最大值 */
+        /** 偏色串(如 "101010") -> 逐通道容差，取三个分量的最大值（交换 R/B 不影响取最大值） */
         function lrDiffToTolerance(str) {
             var v = parseInt(String(str).trim(), 16);
             if (isNaN(v)) {
@@ -667,26 +673,31 @@ module.exports = function (runtime, scope) {
                         flat.push(parsed.colors[i], parsed.tolerances[i]);
                     }
                 } else {
-                    flat.push(p[0], p[1], 1, parseColor(color), 0);
+                    flat.push(p[0], p[1], 1, typeof color === 'string' ? parseLrColorValue(color) : parseColor(color), 0);
                 }
             });
             return flat;
         }
 
-        /** 颜色入参归一化：支持颜色数组、懒人风格串、"#RRGGBB"、颜色整数 */
+        /** 颜色入参归一化：支持颜色数组、懒人风格串、"#RRGGBB"、裸 6 位 BBGGRR、颜色整数 */
         function resolveColorList(color, sim) {
             if (Array.isArray(color)) {
                 var tolerances = color.map(function () {
                     return lrSimToTolerance(sim);
                 });
-                return { colors: color.map(parseColor), tolerances: tolerances };
+                return { colors: color.map(toColorValue), tolerances: tolerances };
             }
             if (typeof color === 'string' && (color.indexOf("|") >= 0 || color.indexOf("-") >= 0)) {
                 var parsed = parseLrColorList(color);
                 return { colors: parsed.colors, tolerances: mergeTolerance(parsed.tolerances, sim) };
             }
             var tolerance = sim === undefined || sim === null ? defaultColorThreshold : lrSimToTolerance(sim);
-            return { colors: [parseColor(color)], tolerances: [tolerance] };
+            return { colors: [toColorValue(color)], tolerances: [tolerance] };
+        }
+
+        /** 单个颜色入参 -> 颜色整数（字符串走 parseLrColorValue，其余交给 parseColor） */
+        function toColorValue(color) {
+            return typeof color === 'string' ? parseLrColorValue(color) : parseColor(color);
         }
 
         /** 懒人精灵区域：(x2,y2) 小于等于 (x1,y1) 时视为全屏，如 (0,0,0,0) */
