@@ -48,8 +48,8 @@ android {
         disable.addAll(listOf("MissingTranslation", "ExtraTranslation"))
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = versions.javaVersion
+        targetCompatibility = versions.javaVersion
     }
     composeOptions {
         kotlinCompilerExtensionVersion = compose_version

@@ -29,6 +29,10 @@ android {
         add("MissingTranslation")
         add("ExtraTranslation")
     }
+    compileOptions {
+        sourceCompatibility = versions.javaVersion
+        targetCompatibility = versions.javaVersion
+    }
 
     buildTypes {
         named("debug") {
