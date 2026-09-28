@@ -460,13 +460,6 @@
             android:configChanges="orientation|screenSize" />
         <activity android:name="org.autojs.autojs.ui.edit.ViewSampleActivity" />
         <activity
-            android:name="org.autojs.autojs.ui.user.LoginActivity_"
-            android:windowSoftInputMode="adjustResize" />
-        <activity
-            android:name="org.autojs.autojs.ui.user.RegisterActivity_"
-            android:windowSoftInputMode="adjustResize" />
-        <activity android:name="org.autojs.autojs.ui.user.WebActivity_" />
-        <activity
             android:name="org.autojs.autojs.ui.build.BuildActivity"
             android:configChanges="orientation|screenSize" />
         <activity android:name="org.autojs.autojs.ui.build.SignManageActivityKt" />
@@ -591,10 +584,12 @@
         </receiver>
 
         <activity
-            android:name="org.autojs.autojs.external.open.EditIntentActivity"
+            android:name="org.autojs.autojs.external.open.OpenIntentActivity"
+            android:excludeFromRecents="true"
             android:exported="true"
             android:icon="@drawable/autojs_logo"
-            android:label="@string/text_edit_script">
+            android:label="@string/app_name"
+            android:theme="@style/M3AppTheme.Transparent">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.EDIT" />
@@ -602,6 +597,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
+                <data android:scheme="autoxscript" />
                 <data android:scheme="file" />
                 <data android:scheme="content" />
                 <data android:mimeType="application/x-javascript" />
@@ -623,26 +619,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="file" />
-                <data android:scheme="content" />
-                <data android:mimeType="application/x-javascript" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name="org.autojs.autojs.external.open.ImportIntentActivity"
-            android:exported="true"
-            android:icon="@drawable/autojs_logo"
-            android:label="@string/text_import_script"
-            android:theme="@style/AppTheme.Transparent">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <action android:name="android.intent.action.EDIT" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                
-                <data android:scheme="autoxscript"/>
                 <data android:scheme="file" />
                 <data android:scheme="content" />
                 <data android:mimeType="application/x-javascript" />
