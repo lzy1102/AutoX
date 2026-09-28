@@ -73,9 +73,7 @@ class OpenIntentActivity : BaseActivity() {
     private fun editFile2(file: Uri): Job? {
         val path = file.path!!
         if (file.scheme == "file" && File(path).isFile()) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                com.aiselp.autojs.codeeditor.EditActivity.editFile(this, File(path))
-            }
+            EditActivity.editFile(this, path, false)
             return Job().apply { complete() }
         }
         showToast(R.string.edit_and_run_handle_intent_error)
