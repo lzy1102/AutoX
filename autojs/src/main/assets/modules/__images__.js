@@ -546,7 +546,395 @@ module.exports = function (runtime, scope) {
             javaImages.initOpenCvIfNeeded();
         }
 
-        scope.__asGlobal__(images, ['requestScreenCapture', 'captureScreen', 'findImage', 'findImageInRegion', 'findColor', 'findColorInRegion', 'findColorEquals', 'findMultiColors']);
+        // ==================== 懒人精灵风格图色兼容支持 ====================
+
+        /** "RRGGBB" / "#RRGGBB" -> 颜色整数 */
+        function parseLrColorValue(str) {
+            str = String(str).trim();
+            if (str.charAt(0) === '#') {
+                str = str.substring(1);
+            }
+            return parseInt(str, 16) & 0xFFFFFF;
+        }
+
+        /** 偏色串(如 "101010") -> 逐通道容差，取三个分量的最大值 */
+        function lrDiffToTolerance(str) {
+            var v = parseInt(String(str).trim(), 16);
+            if (isNaN(v)) {
+                return 0;
+            }
+            return Math.max((v >> 16) & 0xFF, (v >> 8) & 0xFF, v & 0xFF);
+        }
+
+        /** 相似度(0~1) -> 容差；未提供时返回 0（表示只按偏色匹配） */
+        function lrSimToTolerance(sim) {
+            if (sim === undefined || sim === null) {
+                return 0;
+            }
+            return Math.max(0, Math.min(255, Math.round(255 * (1 - sim))));
+        }
+
+        /** 合并颜色自带偏色与相似度容差（两者取较大者） */
+        function mergeTolerance(tolerances, sim) {
+            var simTolerance = lrSimToTolerance(sim);
+            if (simTolerance <= 0) {
+                return tolerances;
+            }
+            return tolerances.map(function (t) {
+                return Math.max(t, simTolerance);
+            });
+        }
+
+        /** "778787|675699-101010" -> {colors:[...], tolerances:[...]} */
+        function parseLrColorList(str) {
+            var result = { colors: [], tolerances: [] };
+            String(str).split("|").forEach(function (item) {
+                item = item.trim();
+                if (item === "") {
+                    return;
+                }
+                var pos = item.indexOf("-");
+                var colorPart = pos < 0 ? item : item.substring(0, pos);
+                var diffPart = pos < 0 ? null : item.substring(pos + 1);
+                result.colors.push(parseLrColorValue(colorPart));
+                result.tolerances.push(diffPart == null ? 0 : lrDiffToTolerance(diffPart));
+            });
+            return result;
+        }
+
+        /** 把一个点的颜色项解析后追加到扁平编码：[first, second, n, color0, tol0, ...] */
+        function appendLrPoint(flat, first, second, colorItems, sim) {
+            var colors = [];
+            var tolerances = [];
+            colorItems.forEach(function (item) {
+                item = String(item).trim();
+                if (item === "") {
+                    return;
+                }
+                var pos = item.indexOf("-");
+                var colorPart = pos < 0 ? item : item.substring(0, pos);
+                var diffPart = pos < 0 ? null : item.substring(pos + 1);
+                colors.push(parseLrColorValue(colorPart));
+                tolerances.push(diffPart == null ? lrSimToTolerance(sim) : lrDiffToTolerance(diffPart));
+            });
+            if (colors.length === 0) {
+                return;
+            }
+            flat.push(first, second, colors.length);
+            for (var i = 0; i < colors.length; i++) {
+                flat.push(colors[i], tolerances[i]);
+            }
+        }
+
+        /** "10|11|2F9772-000000|123456-101010,23|57|353535" -> 扁平编码（findMultiColor 用 "|"） */
+        function parseLrOffsetColors(str, sim) {
+            var flat = [];
+            String(str).split(",").forEach(function (point) {
+                var fields = point.split("|");
+                if (fields.length < 3) {
+                    return;
+                }
+                appendLrPoint(flat, parseInt(fields[0], 10), parseInt(fields[1], 10), fields.slice(2), sim);
+            });
+            return flat;
+        }
+
+        /** "100 200 FFFFFF 123456-000000,300 400 AABBCC" -> 扁平编码（cmpColorEx 用空格） */
+        function parseLrCompareColors(str, sim) {
+            var flat = [];
+            String(str).split(",").forEach(function (point) {
+                var fields = point.trim().split(/\s+/);
+                if (fields.length < 3) {
+                    return;
+                }
+                appendLrPoint(flat, parseInt(fields[0], 10), parseInt(fields[1], 10), fields.slice(2), sim);
+            });
+            return flat;
+        }
+
+        /** AutoX 风格 paths：[[dx,dy,color], ...]，color 可为字符串并支持 "|" 多候选与 "-" 偏色 */
+        function buildFlatPaths(paths) {
+            var flat = [];
+            paths.forEach(function (p) {
+                var color = p[2];
+                if (typeof color === 'string' && (color.indexOf("|") >= 0 || color.indexOf("-") >= 0)) {
+                    var parsed = parseLrColorList(color);
+                    if (parsed.colors.length === 0) {
+                        return;
+                    }
+                    flat.push(p[0], p[1], parsed.colors.length);
+                    for (var i = 0; i < parsed.colors.length; i++) {
+                        flat.push(parsed.colors[i], parsed.tolerances[i]);
+                    }
+                } else {
+                    flat.push(p[0], p[1], 1, parseColor(color), 0);
+                }
+            });
+            return flat;
+        }
+
+        /** 颜色入参归一化：支持颜色数组、懒人风格串、"#RRGGBB"、颜色整数 */
+        function resolveColorList(color, sim) {
+            if (Array.isArray(color)) {
+                var tolerances = color.map(function () {
+                    return lrSimToTolerance(sim);
+                });
+                return { colors: color.map(parseColor), tolerances: tolerances };
+            }
+            if (typeof color === 'string' && (color.indexOf("|") >= 0 || color.indexOf("-") >= 0)) {
+                var parsed = parseLrColorList(color);
+                return { colors: parsed.colors, tolerances: mergeTolerance(parsed.tolerances, sim) };
+            }
+            var tolerance = sim === undefined || sim === null ? defaultColorThreshold : lrSimToTolerance(sim);
+            return { colors: [parseColor(color)], tolerances: [tolerance] };
+        }
+
+        /** 懒人精灵区域：(x2,y2) 小于等于 (x1,y1) 时视为全屏，如 (0,0,0,0) */
+        function lrRegion(img, x1, y1, x2, y2) {
+            x1 = x1 || 0;
+            y1 = y1 || 0;
+            if (x2 === undefined || x2 === null || x2 <= x1) {
+                x2 = img.width;
+            }
+            if (y2 === undefined || y2 === null || y2 <= y1) {
+                y2 = img.height;
+            }
+            return buildRegion([x1, y1, x2 - x1, y2 - y1], img);
+        }
+
+        function toJavaIntArray(arr) {
+            var javaArray = util.java.array("int", arr.length);
+            for (var i = 0; i < arr.length; i++) {
+                javaArray[i] = arr[i];
+            }
+            return javaArray;
+        }
+
+        /** keepCapture 驻留的截图；非 null 时懒人风格查找复用它，不再重复截图 */
+        var keptCaptureImage = null;
+
+        /** all 类接口默认返回的结果数量上限 */
+        var LR_ALL_LIMIT = 1000;
+
+        function resolveLimit(options) {
+            if (options && options.limit !== undefined) {
+                return options.limit;
+            }
+            return LR_ALL_LIMIT;
+        }
+
+        /** 用当前屏幕截图执行 fn；已 keepCapture 时复用内存截图，否则用完即回收 */
+        function withScreenshot(fn) {
+            var img = keptCaptureImage != null ? keptCaptureImage : images.captureScreen();
+            try {
+                return fn(img);
+            } finally {
+                if (img !== keptCaptureImage) {
+                    try {
+                        img.recycle();
+                    } catch (e) {
+                        // 忽略回收异常
+                    }
+                }
+            }
+        }
+
+        /** tb 支持数组(按 positionKeys 顺序)或对象(按同名键取值) */
+        function toPositionalArgs(tb, keys) {
+            if (Array.isArray(tb)) {
+                return tb;
+            }
+            return keys.map(function (key) {
+                return tb[key];
+            });
+        }
+
+        /** 参数重载：首参为数字走懒人精灵风格，否则走 AutoX 原生风格 */
+        function withLrOverload(autoJsFn, lrFn) {
+            return function () {
+                if (typeof arguments[0] === 'number') {
+                    return lrFn.apply(null, arguments);
+                }
+                return autoJsFn.apply(images, arguments);
+            };
+        }
+
+        // ---------- images.* 原生扩展 ----------
+
+        /**
+         * 统计区域内匹配颜色的像素数量。
+         * @param color 颜色/颜色数组/懒人风格颜色串（"|" 多候选、"-" 偏色）
+         * @param options {region, similarity, threshold}
+         */
+        function imageGetColorNum(img, color, options) {
+            initIfNeeded();
+            options = options || {};
+            var list = resolveColorList(color, options.similarity);
+            if (options.threshold !== undefined) {
+                list.tolerances = list.tolerances.map(function () {
+                    return options.threshold;
+                });
+            }
+            var region = options.region ? buildRegion(options.region, img) : null;
+            return colorFinder.getColorNum(img, toJavaIntArray(list.colors), toJavaIntArray(list.tolerances), region);
+        }
+
+        /**
+         * 区域内查找所有匹配点（支持多候选颜色与查找方向）。
+         * @param options {region, similarity, threshold, dir}
+         */
+        images.findAllColors = function (img, color, options) {
+            initIfNeeded();
+            options = options || {};
+            var list = resolveColorList(color, options.similarity);
+            if (options.threshold !== undefined) {
+                list.tolerances = list.tolerances.map(function () {
+                    return options.threshold;
+                });
+            }
+            var region = options.region ? buildRegion(options.region, img) : null;
+            return toPointArray(colorFinder.findAllColors(img, toJavaIntArray(list.colors),
+                toJavaIntArray(list.tolerances), region, options.dir || 0, resolveLimit(options)));
+        }
+
+        /**
+         * 多点找色增强版：首色与偏移点均支持多候选/偏色，并支持查找方向。
+         * @param paths [[dx,dy,color], ...]，color 可为颜色或 "颜色|颜色-偏色" 串
+         * @param options {region, similarity, threshold, dir, all}
+         */
+        images.findMultiColorsEx = function (img, firstColor, paths, options) {
+            initIfNeeded();
+            options = options || {};
+            var first = resolveColorList(firstColor, options.similarity);
+            if (options.threshold !== undefined) {
+                first.tolerances = first.tolerances.map(function () {
+                    return options.threshold;
+                });
+            }
+            var region = options.region ? buildRegion(options.region, img) : null;
+            var points = colorFinder.findMultiColors(img, toJavaIntArray(first.colors),
+                toJavaIntArray(first.tolerances), region, toJavaIntArray(buildFlatPaths(paths)),
+                options.dir || 0, !!options.all, resolveLimit(options));
+            if (options.all) {
+                return toPointArray(points);
+            }
+            return points.length > 0 ? points[0] : null;
+        }
+
+        /** 多点找色，返回全部匹配点 */
+        images.findAllMultiColors = function (img, firstColor, paths, options) {
+            options = options || {};
+            options.all = true;
+            return images.findMultiColorsEx(img, firstColor, paths, options);
+        }
+
+        // ---------- 懒人精灵同名全局函数 ----------
+
+        function lrFindMultiColor(x1, y1, x2, y2, firstColor, offsetColor, dir, sim, all) {
+            initIfNeeded();
+            var first = parseLrColorList(firstColor);
+            var flatPaths = parseLrOffsetColors(offsetColor, sim);
+            return withScreenshot(function (img) {
+                var points = colorFinder.findMultiColors(img, toJavaIntArray(first.colors),
+                    toJavaIntArray(mergeTolerance(first.tolerances, sim)), lrRegion(img, x1, y1, x2, y2),
+                    toJavaIntArray(flatPaths), dir || 0, !!all, LR_ALL_LIMIT);
+                if (all) {
+                    return toPointArray(points);
+                }
+                return points.length > 0 ? points[0] : null;
+            });
+        }
+
+        var MULTI_COLOR_T_KEYS = ["x1", "y1", "x2", "y2", "firstColor", "sim", "offsetColor", "dir"];
+        var FIND_COLOR_T_KEYS = ["x1", "y1", "x2", "y2", "color", "sim", "dir"];
+        var CMP_COLOR_T_KEYS = ["mulColor", "sim"];
+
+        images.findMultiColor = function (x1, y1, x2, y2, firstColor, offsetColor, dir, sim) {
+            return lrFindMultiColor(x1, y1, x2, y2, firstColor, offsetColor, dir, sim, false);
+        }
+
+        images.findMultiColorAll = function (x1, y1, x2, y2, firstColor, offsetColor, dir, sim) {
+            return lrFindMultiColor(x1, y1, x2, y2, firstColor, offsetColor, dir, sim, true);
+        }
+
+        images.findMultiColorT = function (tb) {
+            var a = toPositionalArgs(tb, MULTI_COLOR_T_KEYS);
+            return images.findMultiColor(a[0], a[1], a[2], a[3], a[4], a[6], a[7], a[5]);
+        }
+
+        images.findMultiColorAllT = function (tb) {
+            var a = toPositionalArgs(tb, MULTI_COLOR_T_KEYS);
+            return images.findMultiColorAll(a[0], a[1], a[2], a[3], a[4], a[6], a[7], a[5]);
+        }
+
+        /** findColor 兼容懒人精灵 (x1,y1,x2,y2,color,dir,sim) 与 AutoX (img,color,options) */
+        images.findColor = withLrOverload(images.findColor, function (x1, y1, x2, y2, color, dir, sim) {
+            initIfNeeded();
+            var list = resolveColorList(color, sim);
+            return withScreenshot(function (img) {
+                return colorFinder.findColor(img, toJavaIntArray(list.colors), toJavaIntArray(list.tolerances),
+                    lrRegion(img, x1, y1, x2, y2), dir || 0);
+            });
+        });
+
+        images.findColorT = function (tb) {
+            var a = toPositionalArgs(tb, FIND_COLOR_T_KEYS);
+            return images.findColor(a[0], a[1], a[2], a[3], a[4], a[6], a[5]);
+        }
+
+        /** getColorNum 兼容懒人精灵 (x1,y1,x2,y2,color,sim) 与 AutoX (img,color,options) */
+        images.getColorNum = withLrOverload(imageGetColorNum, function (x1, y1, x2, y2, color, sim) {
+            initIfNeeded();
+            var list = resolveColorList(color, sim);
+            return withScreenshot(function (img) {
+                return colorFinder.getColorNum(img, toJavaIntArray(list.colors), toJavaIntArray(list.tolerances),
+                    lrRegion(img, x1, y1, x2, y2));
+            });
+        });
+
+        /** cmpColorEx 兼容懒人精灵 (mulColor, sim)，自动截屏 */
+        images.cmpColorEx = withLrOverload(function (img, mulColor, sim) {
+            var flat = typeof mulColor === 'string' ? parseLrCompareColors(mulColor, sim) : mulColor;
+            return colorFinder.cmpColorEx(img, toJavaIntArray(flat));
+        }, function (mulColor, sim) {
+            var flat = parseLrCompareColors(mulColor, sim);
+            return withScreenshot(function (img) {
+                return colorFinder.cmpColorEx(img, toJavaIntArray(flat));
+            });
+        });
+
+        images.cmpColorExT = function (tb) {
+            var a = toPositionalArgs(tb, CMP_COLOR_T_KEYS);
+            return images.cmpColorEx(a[0], a[1]);
+        }
+
+        /**
+         * 截图到内存并驻留，后续懒人风格查找/比色复用该截图，避免每次调用都重新截图。
+         * 需要刷新时再次调用即可；用完请调用 releaseCapture() 释放，否则截图会驻留到脚本结束。
+         */
+        images.keepCapture = function () {
+            images.releaseCapture();
+            keptCaptureImage = images.captureScreen();
+            return true;
+        }
+
+        /** 释放 keepCapture 驻留的截图 */
+        images.releaseCapture = function () {
+            if (keptCaptureImage != null) {
+                try {
+                    keptCaptureImage.recycle();
+                } catch (e) {
+                    // 忽略回收异常
+                }
+                keptCaptureImage = null;
+            }
+            return true;
+        }
+
+        scope.__asGlobal__(images, ['requestScreenCapture', 'captureScreen', 'findImage', 'findImageInRegion', 'findColor', 'findColorInRegion', 'findColorEquals', 'findMultiColors',
+            'findMultiColor', 'findMultiColorAll', 'findMultiColorT', 'findMultiColorAllT', 'findColorT',
+            'getColorNum', 'cmpColorEx', 'cmpColorExT', 'keepCapture', 'releaseCapture']);
+
 
         scope.colors = colors;
 
