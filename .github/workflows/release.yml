@@ -1,22 +1,14 @@
 name: build apk
+
 on:
-  workflow_dispatch: # 手动选择分支
+  push:
+    tags:
+      - 'v*' # 推送 v 开头的 tag 即发版，如 v6.6.9
+  workflow_dispatch: # 手动构建：只出 artifact，不发 Release
 
 permissions:
-  actions: write
-  attestations: write
-  checks: write
   contents: write
-  deployments: write
-  discussions: write
-  issues: write
-  packages: write
-  pages: write
-  pull-requests: write
-  repository-projects: write
-  security-events: write
-  statuses: write
-  
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -41,11 +33,11 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: 初始化 Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v4
 
       - name: 打包模版 APP
         run: |
-          chmod 777 ./gradlew
+          chmod +x ./gradlew
           ./gradlew app:buildTemplateApp
 
       - name: 打包 Auto.js App
@@ -73,10 +65,18 @@ jobs:
           mv app-v6-universal-*.apk Autox-v6-universal-release-${{steps.vars.outputs.short_ref}}.apk
           ls
 
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Autox-v6-release-${{steps.vars.outputs.short_ref}}
+          path: build/app/signed/*.apk
+          if-no-files-found: error
+
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          name: ${{steps.vars.outputs.short_ref}}
           body: |
             [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{steps.vars.outputs.short_ref}}/CHANGELOG.md)
           # 匹配目录下所有文件
