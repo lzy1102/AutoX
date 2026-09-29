@@ -51,6 +51,7 @@ import org.autojs.autojs.Pref
 import org.autojs.autojs.autojs.AutoJs
 import org.autojs.autojs.devplugin.DevPlugin
 import org.autojs.autojs.external.foreground.ForegroundService
+import org.autojs.autojs.mcp.McpServer
 import org.autojs.autojs.tool.AccessibilityServiceTool
 import org.autojs.autojs.tool.WifiTool
 import org.autojs.autojs.ui.build.MyTextField
@@ -103,6 +104,7 @@ fun DrawerPage() {
             UsageStatsPermissionSwitch()
             ConnectComputerSwitch()
             USBDebugSwitch()
+            McpServerSwitch()
 
             Text(text = stringResource(id = R.string.text_script_record))
             FloatingWindowSwitch()
@@ -351,6 +353,38 @@ fun USBDebugSwitch() {
                     DevPlugin.stopUSBDebug()
                     enable = false
                 }
+            }
+        }
+    )
+}
+
+@Composable
+fun McpServerSwitch() {
+    val context = LocalContext.current
+    val running by McpServer.running.collectAsState()
+    SwitchItem(
+        icon = {
+            MyIcon(
+                painterResource(id = R.drawable.ic_external_link),
+                contentDescription = null
+            )
+        },
+        text = { Text(text = stringResource(id = R.string.text_mcp_enabled)) },
+        checked = running,
+        onCheckedChange = { checked ->
+            if (checked) {
+                try {
+                    McpServer.start()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.text_start_service_failed, e.localizedMessage),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } else {
+                McpServer.stop()
             }
         }
     )

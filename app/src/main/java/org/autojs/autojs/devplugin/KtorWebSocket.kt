@@ -60,8 +60,38 @@ class WebSocketServer {
         engine!!.start(wait = false)
     }
 
+    /**
+     * 与 [listen] 并列的纯 HTTP 服务端变体：不安装 WebSockets，只挂普通路由。
+     *
+     * 与 [listen] 共用 engine 的生命周期管理（[isActive] / [stop]），因此一个实例只应二选一启动。
+     * 与 [listen] 不同，这里会拒绝重复启动——原 [listen] 无此保护，二次调用会让旧 engine 泄漏且无法停止。
+     */
+    fun listenHttp(
+        port: Int,
+        host: String = "127.0.0.1",
+        routes: Routing.() -> Unit,
+    ) {
+        check(engine == null) { "WebSocketServer: engine already created, call stop() first" }
+        engine = embeddedServer(Netty, port, host) {
+            routing {
+                routes()
+            }
+        }
+        engine!!.environment.monitor.apply {
+            subscribe(ApplicationStarted) {
+                isActive = true
+            }
+            subscribe(ApplicationStopped) {
+                isActive = false
+            }
+        }
+        engine!!.start(wait = false)
+    }
+
     fun stop(gracePeriodMillis: Long = 0, timeoutMillis: Long = 0) {
         engine?.stop(gracePeriodMillis, timeoutMillis)
+        engine = null
+        isActive = false
     }
 
 

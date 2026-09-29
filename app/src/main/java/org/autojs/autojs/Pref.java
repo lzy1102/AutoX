@@ -4,11 +4,14 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Environment;
+import android.widget.Toast;
 import androidx.preference.PreferenceManager;
 import com.stardust.app.GlobalAppContext;
 import com.stardust.autojs.runtime.accessibility.AccessibilityConfig;
 
 import org.autojs.autojs.autojs.key.GlobalKeyObserver;
+import org.autojs.autojs.mcp.McpConfig;
+import org.autojs.autojs.mcp.McpServer;
 import org.autojs.autoxjs.R;
 
 import java.io.File;
@@ -34,9 +37,50 @@ public class Pref {
             } else if ((key.equals(getString(R.string.key_use_volume_control_record)) || key.equals(getString(R.string.key_use_volume_control_running)))
                     && p.getBoolean(key, false)) {
                 GlobalKeyObserver.init();
+            } else if (key.equals(getString(R.string.key_mcp_enabled))) {
+                syncMcpService(p.getBoolean(key, false));
+            } else if (key.equals(getString(R.string.key_mcp_port)) || key.equals(getString(R.string.key_mcp_allow_lan))) {
+                restartMcpIfRunning();
             }
         }
     };
+
+    /**
+     * 设置页的主开关。与抽屉开关走同一套启停逻辑，避免出现「开关有值但服务没动」的死开关。
+     */
+    private static void syncMcpService(boolean enabled) {
+        try {
+            if (enabled) {
+                if (!McpServer.INSTANCE.isRunning()) {
+                    McpServer.INSTANCE.start();
+                }
+            } else if (McpServer.INSTANCE.isRunning()) {
+                McpServer.INSTANCE.stop();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 端口或绑定范围变化后必须重建监听引擎，否则用户改了端口却连不上（旧引擎仍占着原端口）。
+     */
+    private static void restartMcpIfRunning() {
+        try {
+            if (!McpServer.INSTANCE.isRunning()) {
+                return;
+            }
+            McpServer.INSTANCE.restart();
+            String address = McpConfig.INSTANCE.getHost() + ":" + McpConfig.INSTANCE.getPort();
+            Toast.makeText(
+                    GlobalAppContext.get(),
+                    GlobalAppContext.getString(R.string.text_mcp_service_restarted, address),
+                    Toast.LENGTH_SHORT
+            ).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     static {
         AccessibilityConfig.setIsUnintendedGuardEnabled(def().getBoolean(getString(R.string.key_guard_mode), false));
@@ -225,6 +269,56 @@ public class Pref {
 
     public static int getTaskManager() {
         return def().getInt("TaskManager", 0);
+    }
+
+    // ------------------------------ MCP ------------------------------
+
+    public static boolean isMcpEnabled() {
+        return def().getBoolean(getString(R.string.key_mcp_enabled), false);
+    }
+
+    public static void setMcpEnabled(boolean enabled) {
+        def().edit().putBoolean(getString(R.string.key_mcp_enabled), enabled).apply();
+    }
+
+    public static int getMcpPort() {
+        return def().getInt(getString(R.string.key_mcp_port), McpConfig.DEFAULT_PORT);
+    }
+
+    public static void setMcpPort(int port) {
+        def().edit().putInt(getString(R.string.key_mcp_port), port).apply();
+    }
+
+    public static boolean isMcpAllowLan() {
+        return def().getBoolean(getString(R.string.key_mcp_allow_lan), false);
+    }
+
+    public static void setMcpAllowLan(boolean allow) {
+        def().edit().putBoolean(getString(R.string.key_mcp_allow_lan), allow).apply();
+    }
+
+    public static boolean isMcpTokenRequired() {
+        return def().getBoolean(getString(R.string.key_mcp_token_required), true);
+    }
+
+    public static void setMcpTokenRequired(boolean required) {
+        def().edit().putBoolean(getString(R.string.key_mcp_token_required), required).apply();
+    }
+
+    public static String getMcpToken() {
+        return def().getString(getString(R.string.key_mcp_token), "");
+    }
+
+    public static void setMcpToken(String token) {
+        def().edit().putString(getString(R.string.key_mcp_token), token).apply();
+    }
+
+    public static boolean isMcpAuditLogEnabled() {
+        return def().getBoolean(getString(R.string.key_mcp_audit_log), true);
+    }
+
+    public static void setMcpAuditLogEnabled(boolean enabled) {
+        def().edit().putBoolean(getString(R.string.key_mcp_audit_log), enabled).apply();
     }
 
 }

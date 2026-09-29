@@ -6,6 +6,14 @@
 - refactor: 代码重构
 - breaking change: 破坏性变更
 
+## v6.7.0
+
+### 新功能
+
+- 新增 MCP 服务（Streamable HTTP 2026-07-28，默认端口 9318，独立于 9317 调试通道，Token 鉴权），抽屉与设置页可开关
+- MCP C1 工具集（16 个）：device_status / shell_exec / screen_capture / ocr_recognize / ui_dump / ui_find / ui_click / ui_input / input_tap / input_long_click / input_swipe / input_gesture / input_key / app_launch / app_current / app_open_url
+- 修复 WebSocketServer 重复启动导致旧引擎泄漏且无法停止的问题（MCP 独立 HTTP 引擎）
+
 ## v6.6.8
 
 ### 新功能

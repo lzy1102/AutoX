@@ -16,4 +16,10 @@
     <string name="key_use_volume_control_record" translatable="false">key_use_volume_control_record</string>
     <string name="key_guard_mode" translatable="false">key_guard_mode</string>
     <string name="key_intent_run_script" translatable="false" >key_intent_run_script</string>
+    <string name="key_mcp_enabled" translatable="false">key_mcp_enabled</string>
+    <string name="key_mcp_port" translatable="false">key_mcp_port</string>
+    <string name="key_mcp_allow_lan" translatable="false">key_mcp_allow_lan</string>
+    <string name="key_mcp_token_required" translatable="false">key_mcp_token_required</string>
+    <string name="key_mcp_token" translatable="false">key_mcp_token</string>
+    <string name="key_mcp_audit_log" translatable="false">key_mcp_audit_log</string>
 </resources>

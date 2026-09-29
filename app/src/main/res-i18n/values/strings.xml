@@ -547,4 +547,17 @@
     <string name="text_reconnecting">正在重新连接</string>
     <string name="text_connecting">正在连接</string>
     <string name="text_handshake_failed">握手失败</string>
+
+    <!-- MCP -->
+    <string name="text_mcp_service">MCP 服务</string>
+    <string name="text_mcp_enabled">启用 MCP 服务</string>
+    <string name="summary_mcp_enabled">允许 AI/IDE 客户端通过 MCP 协议调用本机的截图、点击、控件、脚本等自动化能力</string>
+    <string name="text_mcp_port">MCP 端口</string>
+    <string name="text_mcp_allow_lan">允许局域网访问</string>
+    <string name="summary_mcp_allow_lan">开启后同网段设备可连接；必须同时启用 Token 鉴权，否则拒绝启动</string>
+    <string name="text_mcp_token_required">要求 Token 鉴权</string>
+    <string name="summary_mcp_token_required">客户端需在 Authorization 头携带 Bearer Token</string>
+    <string name="text_mcp_token">MCP Token</string>
+    <string name="text_mcp_audit_log">记录调用审计日志</string>
+    <string name="text_mcp_service_restarted">MCP 服务已重启：%1$s</string>
 </resources>
