@@ -6,7 +6,7 @@
 - refactor: 代码重构
 - breaking change: 破坏性变更
 
-## v6.7.0
+## v6.7.1
 
 ### 新功能
 
