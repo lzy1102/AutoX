@@ -53,8 +53,9 @@ dependencies {
     api(libs.okhttp)
     // JDeferred
     api("org.jdeferred:jdeferred-android-aar:1.2.6")
-    // RootShell
-    api("com.github.Stericson:RootShell:1.6")
+    // RootShell（JitPack 已下架该坐标，改本地 jar；由同名 AAR 的 classes.jar 提取，
+    // AAR 内无资源/清单依赖，纯 jar 等价；且 AGP8 禁止 library 模块直引本地 AAR）
+    api(files("libs/RootShell-1.6.jar"))
     // Gson
     api(libs.google.gson)
     // log4j
