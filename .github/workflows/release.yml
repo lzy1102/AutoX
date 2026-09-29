@@ -60,9 +60,14 @@ jobs:
         # ubuntu-latest 自带 SDK（ANDROID_SDK_ROOT），直调 sdkmanager 安装所需组件。
         # 不再用 android-actions/setup-android@v3：其默认索取已下架的 tools 包会导致
         # "Failed to find package 'tools'" 而整步失败。
+        # 注意：sdkmanager 不在默认 PATH，用显式路径调用。
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          echo "SDK=$SDK"
+          ls "$SDK/cmdline-tools" || true
+          SDMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDMANAGER" --licenses > /dev/null || true
+          "$SDMANAGER" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: 初始化 Gradle
         uses: gradle/actions/setup-gradle@v4
