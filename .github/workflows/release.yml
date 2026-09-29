@@ -2,25 +2,52 @@ name: build apk
 
 on:
   push:
-    tags:
-      - 'v*' # 推送 v 开头的 tag 即发版，如 v6.6.9
-  workflow_dispatch: # 手动构建：只出 artifact，不发 Release
+    branches:
+      - master
+    paths:
+      - 'project-versions.json' # 仅当版本号文件变化时才走发版流程
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '强制发版（忽略 tag 已存在的检查）'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  # 先算出本次该发的 tag，并判断是否已经发过
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+      publish: ${{ steps.vars.outputs.publish }}
     steps:
-      # 设置变量
-      - name: Set output
+      - name: 下载源码
+        uses: actions/checkout@v4
+
+      - name: 计算版本并判断是否需要发版
         id: vars
         run: |
-          echo "short_ref=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+          TAG="v$(python3 -c "import json;print(json.load(open('project-versions.json'))['devVersionName'])")"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "publish=true" >> $GITHUB_OUTPUT
+            echo "::notice::force=true，跳过 tag 存在性检查"
+          elif [ -n "$(git ls-remote --tags origin "refs/tags/$TAG")" ]; then
+            echo "publish=false" >> $GITHUB_OUTPUT
+            echo "::notice::tag $TAG 已存在，本次只编译，不发 Release"
+          else
+            echo "publish=true" >> $GITHUB_OUTPUT
+            echo "::notice::将发布 $TAG"
+          fi
 
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    steps:
       - name: 下载源码
-        id: check
         uses: actions/checkout@v4
 
       - name: 初始化 JDK 17
@@ -60,25 +87,36 @@ jobs:
       - name: 重命名 apk
         run: |
           cd build/app/signed
-          mv app-v6-arm64-v8a-*.apk Autox-v6-arm64-v8a-release-${{steps.vars.outputs.short_ref}}.apk
-          mv app-v6-armeabi-v7a-*.apk Autox-v6-armeabi-v7a-release-${{steps.vars.outputs.short_ref}}.apk
-          mv app-v6-universal-*.apk Autox-v6-universal-release-${{steps.vars.outputs.short_ref}}.apk
+          mv app-v6-arm64-v8a-*.apk Autox-v6-arm64-v8a-release-${{ needs.prepare.outputs.tag }}.apk
+          mv app-v6-armeabi-v7a-*.apk Autox-v6-armeabi-v7a-release-${{ needs.prepare.outputs.tag }}.apk
+          mv app-v6-universal-*.apk Autox-v6-universal-release-${{ needs.prepare.outputs.tag }}.apk
           ls
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: Autox-v6-release-${{steps.vars.outputs.short_ref}}
+          name: Autox-v6-release-${{ needs.prepare.outputs.tag }}
           path: build/app/signed/*.apk
           if-no-files-found: error
 
-      - name: Release
+      - name: 打 tag 并推送
+        if: needs.prepare.outputs.publish == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -z "$(git ls-remote --tags origin "refs/tags/${{ needs.prepare.outputs.tag }}")" ]; then
+            git tag -a "${{ needs.prepare.outputs.tag }}" -m "Autox.js ${{ needs.prepare.outputs.tag }}"
+            git push origin "${{ needs.prepare.outputs.tag }}"
+          fi
+
+      - name: 发布 Release
+        if: needs.prepare.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: ${{steps.vars.outputs.short_ref}}
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.tag }}
           body: |
-            [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{steps.vars.outputs.short_ref}}/CHANGELOG.md)
+            [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ needs.prepare.outputs.tag }}/CHANGELOG.md)
           # 匹配目录下所有文件
           files: 'build/app/signed/**'
           draft: true  # 草稿
