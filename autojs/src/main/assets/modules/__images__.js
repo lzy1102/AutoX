@@ -760,13 +760,18 @@ module.exports = function (runtime, scope) {
             });
         }
 
-        /** 参数重载：首参为数字走懒人精灵风格，否则走 AutoX 原生风格 */
+        /** AutoX 原生风格的重载均以图片对象作首参；数组按颜色列表处理，仍走懒人精灵风格 */
+        function isImageArg(arg) {
+            return arg !== null && arg !== undefined && typeof arg === 'object' && !Array.isArray(arg);
+        }
+
+        /** 参数重载：首参为图片走 AutoX 原生风格，否则走懒人精灵风格 */
         function withLrOverload(autoJsFn, lrFn) {
             return function () {
-                if (typeof arguments[0] === 'number') {
-                    return lrFn.apply(null, arguments);
+                if (isImageArg(arguments[0])) {
+                    return autoJsFn.apply(images, arguments);
                 }
-                return autoJsFn.apply(images, arguments);
+                return lrFn.apply(null, arguments);
             };
         }
 
