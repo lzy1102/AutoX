@@ -21,5 +21,7 @@
     <string name="key_mcp_allow_lan" translatable="false">key_mcp_allow_lan</string>
     <string name="key_mcp_token_required" translatable="false">key_mcp_token_required</string>
     <string name="key_mcp_token" translatable="false">key_mcp_token</string>
+    <string name="key_mcp_token_copy" translatable="false">key_mcp_token_copy</string>
+    <string name="key_mcp_token_regenerate" translatable="false">key_mcp_token_regenerate</string>
     <string name="key_mcp_audit_log" translatable="false">key_mcp_audit_log</string>
 </resources>

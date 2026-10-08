@@ -560,4 +560,11 @@
     <string name="text_mcp_token">MCP Token</string>
     <string name="text_mcp_audit_log">记录调用审计日志</string>
     <string name="text_mcp_service_restarted">MCP 服务已重启：%1$s</string>
+    <string name="text_mcp_token_copy">复制 Token</string>
+    <string name="summary_mcp_token_copy">点击复制当前 Token 到剪贴板（尚未生成时会自动生成）</string>
+    <string name="text_mcp_token_current">当前 Token：%1$s（点击复制）</string>
+    <string name="text_mcp_token_regenerate">重新生成 Token</string>
+    <string name="summary_mcp_token_regenerate">旧 Token 将立即失效，需同步更新所有客户端配置</string>
+    <string name="text_mcp_token_copied">Token 已复制到剪贴板</string>
+    <string name="text_mcp_token_regenerated">Token 已重新生成并复制到剪贴板</string>
 </resources>

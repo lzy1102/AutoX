@@ -140,6 +140,18 @@
             android:summary="@string/summary_mcp_token_required"
             android:title="@string/text_mcp_token_required"/>
 
+        <Preference
+            android:key="@string/key_mcp_token_copy"
+            android:layout="@layout/preference_custom"
+            android:summary="@string/summary_mcp_token_copy"
+            android:title="@string/text_mcp_token_copy"/>
+
+        <Preference
+            android:key="@string/key_mcp_token_regenerate"
+            android:layout="@layout/preference_custom"
+            android:summary="@string/summary_mcp_token_regenerate"
+            android:title="@string/text_mcp_token_regenerate"/>
+
         <SwitchPreference
             android:defaultValue="true"
             android:key="@string/key_mcp_audit_log"
