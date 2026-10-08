@@ -2,6 +2,7 @@ package org.autojs.autojs.mcp
 
 import android.util.Log
 import com.google.gson.JsonObject
+import com.stardust.app.GlobalAppContext
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -20,6 +21,7 @@ import org.autojs.autojs.Pref
 import org.autojs.autojs.devplugin.JsonUtil
 import org.autojs.autojs.devplugin.WebSocketServer
 import org.autojs.autojs.mcp.tools.registerC1Tools
+import org.autojs.autojs.mcp.tools.registerC3Tools
 import org.autojs.autojs.mcp.tools.registerImageTools
 
 /**
@@ -40,6 +42,7 @@ object McpServer {
     init {
         registry.registerC1Tools()
         registry.registerImageTools()
+        registry.registerC3Tools()
     }
 
     private var server: WebSocketServer? = null
@@ -83,6 +86,7 @@ object McpServer {
         server = engine
         _running.value = true
         Pref.setMcpEnabled(true)
+        McpForegroundService.start(GlobalAppContext.get())
         Log.i(TAG, "started on $host:$port${McpConfig.PATH}, tools=${registry.size}")
     }
 
@@ -92,6 +96,7 @@ object McpServer {
         server = null
         _running.value = false
         Pref.setMcpEnabled(false)
+        McpForegroundService.stop(GlobalAppContext.get())
         Log.i(TAG, "stopped")
     }
 

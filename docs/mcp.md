@@ -1,6 +1,6 @@
 # AutoX MCP Server
 
-AutoX 内置的 MCP（Model Context Protocol）Server，让 AI 客户端（Claude Code、Cursor、Trae、MCP Inspector 等）直连手机执行自动化：截图、找图找色、OCR、YOLO 目标检测、点击滑动、控件操作、应用与 shell 管理。
+AutoX 内置的 MCP（Model Context Protocol）Server，让 AI 客户端（Claude Code、Cursor、Trae、MCP Inspector 等）直连手机执行自动化：截图、找图找色、OCR、YOLO 目标检测、点击滑动、控件操作、脚本运行、应用与 shell 管理。
 
 - 协议：Streamable HTTP（`2026-07-28`），兼容旧 `initialize` 握手（`2025-03-26` ~ `2024-11-05`）
 - 端点：`POST http://127.0.0.1:9318/mcp`（默认）
@@ -17,6 +17,8 @@ AutoX 内置的 MCP（Model Context Protocol）Server，让 AI 客户端（Claud
 | | 审计日志 | 开 |
 
 改端口/局域网开关时若服务在运行，会自动重启并提示新地址。**局域网模式强制要求鉴权**，否则拒绝启动。
+
+服务运行时会有常驻通知「MCP 服务运行中」（含当前地址），通知上的**停止服务**按钮可直接关闭；服务以前台服务保活，切后台/息屏不易被系统回收。
 
 ## 连接方式
 
@@ -68,7 +70,7 @@ curl -X POST http://127.0.0.1:9318/mcp \
 - 方法：`server/discover`、`tools/list`、`tools/call`
 - 安全校验：`Origin` / `Host` 白名单（局域网模式加入本机各网卡 IPv4），Token 走常量时间比较
 
-## 工具参考（23 个）
+## 工具参考（29 个）
 
 坐标一律为**设备物理像素**；先用 `device_status` 自检环境。
 
@@ -128,6 +130,24 @@ curl -X POST http://127.0.0.1:9318/mcp \
 | `app_launch` | `packageName` 或 `appName` 启动 |
 | `app_current` | 当前前台包名/Activity |
 | `app_open_url` | `ACTION_VIEW` 打开 url |
+| `app_list` | 已安装应用列表（`keyword` 过滤、`includeSystem` 默认 false、`limit` 默认 100） |
+
+### 脚本
+
+| 工具 | 说明 |
+|---|---|
+| `script_run` | 运行 JS：`code`（脚本内容）或 `path`（手机上的 .js 文件），立即返回 `executionId`，不等待结束 |
+| `script_stop` | 传 `executionId` 停单个；不传停止全部 |
+| `script_list` | 列出运行中的脚本（id/名称/来源/引擎就绪） |
+
+> UI 模式脚本（`"ui";`）会尝试弹出脚本界面，后台调用可能失败，建议用普通脚本。
+
+### 剪贴板
+
+| 工具 | 说明 |
+|---|---|
+| `clipboard_get` | 读取剪贴板文本（Android 10+ 仅前台应用可读，空结果时让 AutoX 在前台） |
+| `clipboard_set` | 写入剪贴板文本 |
 
 ## 错误处理
 
@@ -172,6 +192,6 @@ list.forEach(function (d) {
 
 ## 已知限制
 
-- 未实现前台服务保活；App 被杀后服务停止
-- `script_*`（跑脚本/停脚本）、剪贴板、已安装应用列表等工具待补
 - 不支持 2025-03-26 HTTP+SSE 客户端（`/sse` 明确报错）
+- `clipboard_get` 受 Android 10+ 前台限制
+- 脚本工具会执行任意 JS，与 `shell_exec` 同属高权限能力，注意 LAN 模式下保持 Token 开启

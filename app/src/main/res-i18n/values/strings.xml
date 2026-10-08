@@ -567,4 +567,8 @@
     <string name="summary_mcp_token_regenerate">旧 Token 将立即失效，需同步更新所有客户端配置</string>
     <string name="text_mcp_token_copied">Token 已复制到剪贴板</string>
     <string name="text_mcp_token_regenerated">Token 已重新生成并复制到剪贴板</string>
+    <string name="text_mcp_foreground_title">MCP 服务运行中</string>
+    <string name="text_mcp_foreground_text">正在监听 %1$s</string>
+    <string name="text_mcp_foreground_stop">停止服务</string>
+    <string name="text_mcp_foreground_channel_name">MCP 服务</string>
 </resources>

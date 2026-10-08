@@ -41,3 +41,15 @@ fun McpRegistry.registerImageTools() {
         YoloDetectTool(),
     )
 }
+
+/** C3 工具：脚本 / 剪贴板 / 应用列表. */
+fun McpRegistry.registerC3Tools() {
+    registerAll(
+        ScriptRunTool(),
+        ScriptStopTool(),
+        ScriptListTool(),
+        ClipboardGetTool(),
+        ClipboardSetTool(),
+        AppListTool(),
+    )
+}

@@ -6,6 +6,14 @@
 - refactor: 代码重构
 - breaking change: 破坏性变更
 
+## v6.8.0
+
+### 新功能
+
+- MCP 服务前台保活：运行时显示常驻通知（含当前地址与停止按钮），切后台/息屏不易被回收
+- 新增 MCP 工具（6 个）：script_run / script_stop / script_list（运行管理 JS 脚本）、clipboard_get / clipboard_set、app_list（已安装应用列表）
+- 工具总数 23 → 29
+
 ## v6.7.5
 
 ### 新功能
