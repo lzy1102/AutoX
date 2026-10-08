@@ -6,6 +6,14 @@
 
 重度使用, 建议使用其他开发者经常更新的版本
 
+## MCP（AI 设备控制）
+
+内置 MCP Server，AI 客户端（Claude Code / Cursor / Trae / MCP Inspector 等）可直连手机调用 23 个工具：截图、找图找色、OCR、YOLO 目标检测、点击滑动、无障碍控件、应用与 shell 管理。
+
+- 端点：`POST http://127.0.0.1:9318/mcp`（默认端口 9318，独立于 9317 调试通道）
+- 开启：主界面抽屉「MCP 服务」开关；设置页可改端口 / 局域网 / 鉴权
+- 完整文档：[docs/mcp.md](docs/mcp.md)
+
 ## 开发指南
 
 **Android Studio 版本:**
