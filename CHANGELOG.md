@@ -6,6 +6,12 @@
 - refactor: 代码重构
 - breaking change: 破坏性变更
 
+## v6.7.4
+
+### 新功能
+
+- 脚本可用全局对象 `yolo`（与 `images` 同风格）：`yolo.detect(modelPath, {labels, confThreshold})` 自动截屏检测；`yolo.detect(img, modelPath, options)` 检测指定图片；返回 label/confidence/bounds（物理像素）
+
 ## v6.7.3
 
 ### 新功能
