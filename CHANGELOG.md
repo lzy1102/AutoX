@@ -6,6 +6,12 @@
 - refactor: 代码重构
 - breaking change: 破坏性变更
 
+## v6.7.3
+
+### 新功能
+
+- 接入 TFLite（CPU 推理），新增 MCP 工具 yolo_detect：自备 Ultralytics 导出的 fp32 模型放手机存储，传 modelPath 即做目标检测（找怪/找按钮），返回标签/置信度/边框物理像素坐标
+
 ## v6.7.2
 
 ### 新功能

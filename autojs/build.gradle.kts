@@ -77,5 +77,7 @@ dependencies {
     api("com.google.mlkit:text-recognition-devanagari:16.0.0-beta5")
     api("com.google.mlkit:text-recognition-japanese:16.0.0-beta5")
     api("com.google.mlkit:text-recognition-korean:16.0.0-beta5")
+    // TFLite（YOLO 目标检测推理，CPU；模型由用户自备，见 YoloDetector）
+    api("org.tensorflow:tensorflow-lite:2.14.0")
 }
 

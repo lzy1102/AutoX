@@ -38,5 +38,6 @@ fun McpRegistry.registerImageTools() {
         FindAllColorsTool(),
         FindMultiColorsTool(),
         CmpColorsTool(),
+        YoloDetectTool(),
     )
 }
