@@ -28,3 +28,15 @@ fun McpRegistry.registerC1Tools() {
         AppOpenUrlTool(),
     )
 }
+
+/** C2 图像工具：找图找色. */
+fun McpRegistry.registerImageTools() {
+    registerAll(
+        FindImageTool(),
+        FindAllImagesTool(),
+        FindColorTool(),
+        FindAllColorsTool(),
+        FindMultiColorsTool(),
+        CmpColorsTool(),
+    )
+}

@@ -20,6 +20,7 @@ import org.autojs.autojs.Pref
 import org.autojs.autojs.devplugin.JsonUtil
 import org.autojs.autojs.devplugin.WebSocketServer
 import org.autojs.autojs.mcp.tools.registerC1Tools
+import org.autojs.autojs.mcp.tools.registerImageTools
 
 /**
  * MCP 服务端（2026-07-28 Streamable HTTP + 旧握手兼容）。
@@ -38,6 +39,7 @@ object McpServer {
 
     init {
         registry.registerC1Tools()
+        registry.registerImageTools()
     }
 
     private var server: WebSocketServer? = null

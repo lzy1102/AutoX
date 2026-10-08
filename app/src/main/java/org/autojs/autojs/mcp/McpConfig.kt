@@ -45,6 +45,7 @@ object McpConfig {
     const val SHELL_TIMEOUT_MS = 15_000L
     const val CAPTURE_TIMEOUT_MS = 60_000L
     const val OCR_TIMEOUT_MS = 120_000L
+    const val MATCH_TIMEOUT_MS = 60_000L
 
     val port: Int get() = Pref.getMcpPort()
     val allowLan: Boolean get() = Pref.isMcpAllowLan()

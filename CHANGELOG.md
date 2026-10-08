@@ -6,6 +6,12 @@
 - refactor: 代码重构
 - breaking change: 破坏性变更
 
+## v6.7.2
+
+### 新功能
+
+- MCP C2 图像工具（6 个）：find_image / find_all_images / find_color / find_all_colors / find_multi_colors / cmp_colors，坐标均为物理像素
+
 ## v6.7.1
 
 ### 新功能
